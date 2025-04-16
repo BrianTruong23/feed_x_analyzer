@@ -209,11 +209,11 @@ class XClient:
             # Add small delay between requests
             time.sleep(2)
             
-            print(f"Fetching {num_posts} recent posts...")
-            # Get user's recent tweets
+            print(f"Fetching posts...")
+            # Get user's recent tweets (minimum 5 required by API)
             tweets = self.client.get_users_tweets(
                 id=user_id,
-                max_results=num_posts,
+                max_results=5,  # API minimum requirement
                 tweet_fields=['created_at', 'public_metrics', 'text'],
             )
             
@@ -223,9 +223,9 @@ class XClient:
                     'message': f'No tweets found for @{username}'
                 }
             
-            # Format posts
+            # Format posts and limit to requested number
             formatted_posts = []
-            for tweet in tweets.data:
+            for tweet in tweets.data[:num_posts]:  # Only take the number of posts requested
                 formatted_posts.append({
                     'id': tweet.id,
                     'text': tweet.text,
@@ -254,7 +254,7 @@ def test_user_posts():
     client = XClient()
     
     # Replace with the username you want to test (without @ symbol)
-    test_username = "elonmusk"
+    test_username = "Riazi_Cafe_en"
     
     result = client.get_user_recent_posts(test_username)
     
