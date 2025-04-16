@@ -181,58 +181,53 @@ class XClient:
             }
         }
 
-    def get_user_recent_posts(self, username, num_posts=2):
+    def get_user_recent_posts(self, username):
         """
-        Fetch recent posts from a specific user.
-        
+        Fetch 2 recent posts from a specific user (rate-limit friendly).
+
         Args:
-            username (str): The username (handle) of the user without the @ symbol
-            num_posts (int): Number of posts to fetch (default: 2)
-            
+            username (str): The Twitter username without @
+
         Returns:
             dict: Status and user posts data
         """
         try:
-            print(f"\nFetching user info for @{username}...")
-            # Get user ID from username
+            print(f"\nLooking up user ID for @{username}...")
+
+            # Single API call to get user ID and recent tweets in sequence
             user = self.client.get_user(username=username)
-            
             if not user.data:
                 return {
                     'status': 'error',
-                    'message': f'User @{username} not found'
+                    'message': f'User @{username} not found.'
                 }
-            
+
             user_id = user.data.id
-            print(f"Found user: {user.data.name} (@{user.data.username})")
-            
-            # Add small delay between requests
-            time.sleep(2)
-            
-            print(f"Fetching posts...")
-            # Get user's recent tweets (minimum 5 required by API)
+            print(f"User found: {user.data.name} (@{user.data.username})")
+
+            # Optional delay to prevent rapid successive calls
+            time.sleep(1)
+
+            # Fetch only 5 recent tweets (limit to what's needed)
             tweets = self.client.get_users_tweets(
                 id=user_id,
-                max_results=5,  # API minimum requirement
-                tweet_fields=['created_at', 'public_metrics', 'text'],
+                max_results=5,
+                tweet_fields=['created_at', 'public_metrics', 'text']
             )
-            
+
             if not tweets.data:
                 return {
                     'status': 'error',
                     'message': f'No tweets found for @{username}'
                 }
-            
-            # Format posts and limit to requested number
-            formatted_posts = []
-            for tweet in tweets.data[:num_posts]:  # Only take the number of posts requested
-                formatted_posts.append({
-                    'id': tweet.id,
-                    'text': tweet.text,
-                    'created_at': tweet.created_at.isoformat(),
-                    'metrics': tweet.public_metrics
-                })
-            
+
+            formatted_posts = [{
+                'id': tweet.id,
+                'text': tweet.text,
+                'created_at': tweet.created_at.isoformat(),
+                'metrics': tweet.public_metrics
+            } for tweet in tweets.data]
+
             return {
                 'status': 'success',
                 'user_info': {
@@ -242,12 +237,13 @@ class XClient:
                 },
                 'posts': formatted_posts
             }
-            
+
         except Exception as e:
             return {
                 'status': 'error',
                 'message': f'Error fetching posts: {str(e)}'
             }
+
 
 def test_user_posts():
     """Test function to fetch and print posts from a specific user"""
