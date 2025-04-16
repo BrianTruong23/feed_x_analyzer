@@ -179,4 +179,95 @@ class XClient:
                 'oldest': all_posts[0]['created_at'] if all_posts else None,
                 'newest': all_posts[-1]['created_at'] if all_posts else None
             }
-        } 
+        }
+
+    def get_user_recent_posts(self, username, num_posts=2):
+        """
+        Fetch recent posts from a specific user.
+        
+        Args:
+            username (str): The username (handle) of the user without the @ symbol
+            num_posts (int): Number of posts to fetch (default: 2)
+            
+        Returns:
+            dict: Status and user posts data
+        """
+        try:
+            print(f"\nFetching user info for @{username}...")
+            # Get user ID from username
+            user = self.client.get_user(username=username)
+            
+            if not user.data:
+                return {
+                    'status': 'error',
+                    'message': f'User @{username} not found'
+                }
+            
+            user_id = user.data.id
+            print(f"Found user: {user.data.name} (@{user.data.username})")
+            
+            # Add small delay between requests
+            time.sleep(2)
+            
+            print(f"Fetching {num_posts} recent posts...")
+            # Get user's recent tweets
+            tweets = self.client.get_users_tweets(
+                id=user_id,
+                max_results=num_posts,
+                tweet_fields=['created_at', 'public_metrics', 'text'],
+            )
+            
+            if not tweets.data:
+                return {
+                    'status': 'error',
+                    'message': f'No tweets found for @{username}'
+                }
+            
+            # Format posts
+            formatted_posts = []
+            for tweet in tweets.data:
+                formatted_posts.append({
+                    'id': tweet.id,
+                    'text': tweet.text,
+                    'created_at': tweet.created_at.isoformat(),
+                    'metrics': tweet.public_metrics
+                })
+            
+            return {
+                'status': 'success',
+                'user_info': {
+                    'id': user_id,
+                    'username': user.data.username,
+                    'name': user.data.name,
+                },
+                'posts': formatted_posts
+            }
+            
+        except Exception as e:
+            return {
+                'status': 'error',
+                'message': f'Error fetching posts: {str(e)}'
+            }
+
+def test_user_posts():
+    """Test function to fetch and print posts from a specific user"""
+    client = XClient()
+    
+    # Replace with the username you want to test (without @ symbol)
+    test_username = "elonmusk"
+    
+    result = client.get_user_recent_posts(test_username)
+    
+    if result['status'] == 'success':
+        print(f"\nSuccessfully fetched posts from {result['user_info']['name']} (@{result['user_info']['username']})")
+        print("\nRecent posts:")
+        for i, post in enumerate(result['posts'], 1):
+            print(f"\n{i}. Posted at: {post['created_at']}")
+            print(f"Text: {post['text']}")
+            print("Metrics:", post['metrics'])
+    else:
+        print(f"\nError: {result['message']}")
+
+if __name__ == "__main__":
+    test_user_posts()
+    
